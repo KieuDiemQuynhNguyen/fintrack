@@ -1,0 +1,1051 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FinTrack">
+<meta name="theme-color" content="#0f172a">
+<title>FinTrack — Personal Finance</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-512.png">
+<link rel="apple-touch-startup-image" href="icon-512.png">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root {
+  --bg: #0f172a;
+  --bg2: #1e293b;
+  --bg3: #334155;
+  --card: #1e293b;
+  --border: rgba(255,255,255,0.08);
+  --text: #f1f5f9;
+  --muted: #94a3b8;
+  --hint: #64748b;
+  --green: #22c55e;
+  --green-bg: rgba(34,197,94,0.12);
+  --blue: #3b82f6;
+  --blue-bg: rgba(59,130,246,0.12);
+  --amber: #f59e0b;
+  --amber-bg: rgba(245,158,11,0.12);
+  --red: #ef4444;
+  --red-bg: rgba(239,68,68,0.12);
+  --purple: #a855f7;
+  --purple-bg: rgba(168,85,247,0.12);
+  --radius: 16px;
+  --radius-sm: 10px;
+  --safe-bottom: env(safe-area-inset-bottom, 20px);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
+.app { max-width: 430px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; position: relative; }
+
+/* NAV */
+.bottom-nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 430px; background: rgba(15,23,42,0.95); backdrop-filter: blur(20px); border-top: 0.5px solid var(--border); display: flex; padding-bottom: var(--safe-bottom); z-index: 100; }
+.nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 10px 0 6px; gap: 4px; cursor: pointer; border: none; background: none; color: var(--hint); font-size: 10px; font-weight: 500; transition: color 0.2s; }
+.nav-item.active { color: var(--blue); }
+.nav-icon { font-size: 22px; line-height: 1; }
+
+/* SCREENS */
+.screen { display: none; flex-direction: column; padding: 0 0 calc(80px + var(--safe-bottom)); min-height: 100vh; }
+.screen.active { display: flex; }
+
+/* HEADER */
+.header { padding: 56px 20px 16px; }
+.header-top { display: flex; justify-content: space-between; align-items: flex-start; }
+.greeting { font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+.header-title { font-size: 28px; font-weight: 700; letter-spacing: -0.5px; }
+.header-sub { font-size: 13px; color: var(--muted); margin-top: 4px; }
+.avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--blue-bg); border: 1.5px solid var(--blue); display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700; color: var(--blue); flex-shrink: 0; }
+
+/* CARDS */
+.card { background: var(--card); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 16px; margin: 0 16px 12px; }
+.card-sm { padding: 12px 14px; }
+.card-label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 8px; }
+.card-value { font-size: 32px; font-weight: 700; letter-spacing: -1px; }
+.card-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+/* GRID */
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0 16px; margin-bottom: 12px; }
+.mini-card { background: var(--card); border: 0.5px solid var(--border); border-radius: var(--radius-sm); padding: 14px; }
+.mini-label { font-size: 11px; color: var(--muted); margin-bottom: 6px; }
+.mini-value { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
+.mini-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+/* NET WORTH CARD */
+.nw-card { background: linear-gradient(135deg, #1e3a5f 0%, #1e293b 100%); border: 0.5px solid rgba(59,130,246,0.3); border-radius: var(--radius); padding: 20px; margin: 0 16px 12px; }
+.nw-label { font-size: 12px; color: rgba(148,163,184,0.8); margin-bottom: 6px; }
+.nw-value { font-size: 40px; font-weight: 800; letter-spacing: -1.5px; color: #fff; }
+.nw-change { font-size: 13px; color: var(--green); margin-top: 6px; display: flex; align-items: center; gap: 4px; }
+
+/* SECTION */
+.section-title { font-size: 17px; font-weight: 700; padding: 4px 16px 10px; }
+
+/* ROW ITEMS */
+.row-item { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 0.5px solid var(--border); }
+.row-item:last-child { border-bottom: none; }
+.row-icon { width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+.row-label { flex: 1; min-width: 0; }
+.row-name { font-size: 14px; font-weight: 600; }
+.row-desc { font-size: 12px; color: var(--muted); margin-top: 1px; }
+.row-right { text-align: right; flex-shrink: 0; }
+.row-amount { font-size: 15px; font-weight: 700; }
+.row-return { font-size: 11px; color: var(--green); margin-top: 1px; }
+.row-return.neg { color: var(--red); }
+
+/* PROGRESS BAR */
+.progress-track { height: 6px; background: var(--bg3); border-radius: 3px; margin-top: 8px; overflow: hidden; }
+.progress-fill { height: 6px; border-radius: 3px; transition: width 0.5s ease; }
+
+/* INCOME BAR */
+.income-seg-bar { display: flex; height: 10px; border-radius: 5px; overflow: hidden; margin: 10px 0; gap: 2px; }
+.income-seg { border-radius: 3px; transition: flex 0.3s; }
+
+/* BADGE */
+.badge { display: inline-flex; align-items: center; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 20px; }
+.badge-green { background: var(--green-bg); color: var(--green); }
+.badge-blue { background: var(--blue-bg); color: var(--blue); }
+.badge-amber { background: var(--amber-bg); color: var(--amber); }
+.badge-red { background: var(--red-bg); color: var(--red); }
+.badge-purple { background: var(--purple-bg); color: var(--purple); }
+
+/* FORM */
+.form-group { margin-bottom: 14px; }
+.form-label { font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 6px; display: block; text-transform: uppercase; letter-spacing: 0.05em; }
+.form-input { width: 100%; background: var(--bg3); border: 0.5px solid var(--border); border-radius: var(--radius-sm); padding: 12px 14px; font-size: 15px; color: var(--text); font-family: inherit; outline: none; -webkit-appearance: none; }
+.form-input:focus { border-color: var(--blue); }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.btn { width: 100%; padding: 14px; border-radius: var(--radius-sm); border: none; font-size: 15px; font-weight: 700; cursor: pointer; font-family: inherit; transition: opacity 0.2s; }
+.btn:active { opacity: 0.8; }
+.btn-primary { background: var(--blue); color: #fff; }
+.btn-danger { background: var(--red-bg); color: var(--red); border: 0.5px solid rgba(239,68,68,0.3); }
+.btn-sm { padding: 8px 16px; width: auto; font-size: 13px; }
+
+/* TABS */
+.tabs { display: flex; background: var(--bg2); border-radius: var(--radius-sm); padding: 3px; margin: 0 16px 14px; }
+.tab-btn { flex: 1; padding: 7px; border-radius: 8px; border: none; background: none; font-size: 12px; font-weight: 600; color: var(--muted); cursor: pointer; font-family: inherit; transition: all 0.2s; }
+.tab-btn.active { background: var(--bg3); color: var(--text); }
+
+/* MODAL */
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 200; display: none; align-items: flex-end; justify-content: center; backdrop-filter: blur(4px); }
+.modal-overlay.open { display: flex; }
+.modal { background: var(--bg2); border-radius: 24px 24px 0 0; width: 100%; max-width: 430px; padding: 20px 20px calc(20px + var(--safe-bottom)); max-height: 85vh; overflow-y: auto; }
+.modal-handle { width: 36px; height: 4px; background: var(--bg3); border-radius: 2px; margin: 0 auto 16px; }
+.modal-title { font-size: 18px; font-weight: 700; margin-bottom: 16px; }
+
+/* CHART */
+.chart-wrap { position: relative; width: 100%; height: 200px; }
+
+/* GOAL */
+.goal-item { background: var(--bg3); border-radius: var(--radius-sm); padding: 14px; margin-bottom: 10px; }
+.goal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.goal-name { font-size: 14px; font-weight: 700; }
+.goal-amounts { display: flex; justify-content: space-between; font-size: 12px; color: var(--muted); margin-top: 6px; }
+
+/* TRANSACTION */
+.tx-item { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 0.5px solid var(--border); }
+.tx-item:last-child { border-bottom: none; }
+.tx-icon { width: 36px; height: 36px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+.tx-info { flex: 1; }
+.tx-name { font-size: 13px; font-weight: 600; }
+.tx-date { font-size: 11px; color: var(--muted); }
+.tx-amount { font-size: 14px; font-weight: 700; }
+
+/* DIVIDER */
+.divider { height: 0.5px; background: var(--border); margin: 4px 0; }
+
+/* ALLOCATION SLIDER */
+.alloc-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.alloc-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+.alloc-label { font-size: 13px; color: var(--muted); flex: 1; }
+.alloc-input { flex: 1; accent-color: var(--blue); }
+.alloc-val { font-size: 13px; font-weight: 700; min-width: 52px; text-align: right; }
+
+/* CHART LEGEND */
+.chart-legend { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 10px; }
+.legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); }
+.legend-dot { width: 8px; height: 8px; border-radius: 2px; }
+
+/* EMPTY STATE */
+.empty { text-align: center; padding: 40px 20px; color: var(--muted); }
+.empty-icon { font-size: 40px; margin-bottom: 12px; }
+.empty-text { font-size: 14px; }
+
+/* UTIL */
+.green { color: var(--green); }
+.red { color: var(--red); }
+.blue { color: var(--blue); }
+.amber { color: var(--amber); }
+.purple { color: var(--purple); }
+.muted { color: var(--muted); }
+.mt4 { margin-top: 4px; }
+.mt8 { margin-top: 8px; }
+.mt12 { margin-top: 12px; }
+.flex-between { display: flex; justify-content: space-between; align-items: center; }
+.text-sm { font-size: 13px; }
+.text-xs { font-size: 11px; }
+.fw7 { font-weight: 700; }
+.px16 { padding: 0 16px; }
+.scroll-x { overflow-x: auto; display: flex; gap: 10px; padding: 0 16px 4px; scrollbar-width: none; }
+.scroll-x::-webkit-scrollbar { display: none; }
+.snap-card { flex-shrink: 0; width: 200px; background: var(--card); border: 0.5px solid var(--border); border-radius: var(--radius); padding: 16px; }
+
+input[type=range] { -webkit-appearance: none; height: 4px; background: var(--bg3); border-radius: 2px; outline: none; cursor: pointer; }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: var(--blue); cursor: pointer; }
+
+select.form-input { cursor: pointer; }
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- DASHBOARD -->
+<div class="screen active" id="screen-dashboard">
+  <div class="header">
+    <div class="header-top">
+      <div>
+        <div class="greeting" id="greeting">Good morning</div>
+        <div class="header-title">Dashboard</div>
+        <div class="header-sub" id="today-date"></div>
+      </div>
+      <div class="avatar" id="avatar-initials">You</div>
+    </div>
+  </div>
+
+  <div class="nw-card" id="nw-card">
+    <div class="nw-label">Net Worth</div>
+    <div class="nw-value" id="nw-value">$0</div>
+    <div class="nw-change" id="nw-change">↑ Loading...</div>
+  </div>
+
+  <div class="grid2">
+    <div class="mini-card">
+      <div class="mini-label">Emergency Fund</div>
+      <div class="mini-value green" id="dash-emergency">$0</div>
+      <div class="mini-sub" id="dash-emerg-rate">Westpac · 5.75%</div>
+    </div>
+    <div class="mini-card">
+      <div class="mini-label">Investments</div>
+      <div class="mini-value blue" id="dash-investments">$0</div>
+      <div class="mini-sub">ETFs + High risk</div>
+    </div>
+    <div class="mini-card">
+      <div class="mini-label">Monthly income</div>
+      <div class="mini-value" id="dash-income">$0</div>
+      <div class="mini-sub">After tax</div>
+    </div>
+    <div class="mini-card">
+      <div class="mini-label">Monthly saved</div>
+      <div class="mini-value green" id="dash-saved">$0</div>
+      <div class="mini-sub" id="dash-saved-pct">of income</div>
+    </div>
+  </div>
+
+  <div class="section-title">Portfolio breakdown</div>
+  <div class="card" id="portfolio-rows">
+    <div class="empty"><div class="empty-icon">📊</div><div class="empty-text">Add investments in Portfolio tab</div></div>
+  </div>
+
+  <div class="section-title">Recent transactions</div>
+  <div class="card" id="recent-tx">
+    <div class="empty"><div class="empty-icon">💸</div><div class="empty-text">Add transactions in Budget tab</div></div>
+  </div>
+</div>
+
+<!-- PORTFOLIO -->
+<div class="screen" id="screen-portfolio">
+  <div class="header">
+    <div class="header-title">Portfolio</div>
+    <div class="header-sub">Track your investments</div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">Total invested</div>
+    <div class="card-value blue" id="port-total">$0</div>
+    <div class="card-sub" id="port-gain">Gain: —</div>
+    <div class="chart-wrap mt12">
+      <canvas id="portChart" role="img" aria-label="Portfolio allocation donut chart"></canvas>
+    </div>
+    <div class="chart-legend" id="port-legend"></div>
+  </div>
+
+  <div class="flex-between px16 mt4" style="margin-bottom:10px;">
+    <div class="section-title" style="padding:0;">Holdings</div>
+    <button class="btn btn-primary btn-sm" onclick="openModal('modal-add-holding')">+ Add</button>
+  </div>
+
+  <div class="card" id="holdings-list">
+    <div class="empty"><div class="empty-icon">📈</div><div class="empty-text">Add your first holding</div></div>
+  </div>
+
+  <div class="section-title">Projection</div>
+  <div class="tabs">
+    <button class="tab-btn active" onclick="setProjRate(0.08, this)">8% conservative</button>
+    <button class="tab-btn" onclick="setProjRate(0.10, this)">10% moderate</button>
+    <button class="tab-btn" onclick="setProjRate(0.13, this)">13% optimistic</button>
+  </div>
+  <div class="card">
+    <div class="chart-wrap">
+      <canvas id="projChart" role="img" aria-label="Portfolio projection line chart"></canvas>
+    </div>
+    <div class="chart-legend" style="margin-top:10px;">
+      <span class="legend-item"><span class="legend-dot" style="background:#3b82f6;"></span>Portfolio value</span>
+      <span class="legend-item"><span class="legend-dot" style="background:#64748b; border-style:dashed;"></span>Contributed</span>
+    </div>
+    <div id="proj-rows" style="margin-top:14px;"></div>
+  </div>
+</div>
+
+<!-- BUDGET -->
+<div class="screen" id="screen-budget">
+  <div class="header">
+    <div class="header-title">Budget</div>
+    <div class="header-sub" id="budget-month"></div>
+  </div>
+
+  <div class="grid2">
+    <div class="mini-card">
+      <div class="mini-label">Income</div>
+      <div class="mini-value green" id="budget-income-val">$0</div>
+    </div>
+    <div class="mini-card">
+      <div class="mini-label">Spent</div>
+      <div class="mini-value red" id="budget-spent-val">$0</div>
+    </div>
+  </div>
+
+  <div class="card card-sm">
+    <div class="flex-between" style="margin-bottom:8px;">
+      <span class="text-sm muted">Budget used</span>
+      <span class="text-sm fw7" id="budget-pct-val">0%</span>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill" id="budget-progress" style="width:0%; background: var(--green);"></div>
+    </div>
+    <div class="flex-between mt8">
+      <span class="text-xs muted">Remaining</span>
+      <span class="text-xs fw7 green" id="budget-remaining">$0</span>
+    </div>
+  </div>
+
+  <div class="section-title">Income allocation</div>
+  <div class="card">
+    <div class="alloc-row">
+      <div class="alloc-dot" style="background:#3b82f6;"></div>
+      <span class="alloc-label">Emergency top-up</span>
+      <input type="range" class="alloc-input" min="0" max="300" step="10" id="sl-emerg" oninput="updateAlloc()">
+      <span class="alloc-val" id="al-emerg">$50</span>
+    </div>
+    <div class="alloc-row">
+      <div class="alloc-dot" style="background:#22c55e;"></div>
+      <span class="alloc-label">ETFs</span>
+      <input type="range" class="alloc-input" min="100" max="1500" step="50" id="sl-etf" oninput="updateAlloc()">
+      <span class="alloc-val" id="al-etf">$800</span>
+    </div>
+    <div class="alloc-row">
+      <div class="alloc-dot" style="background:#ef4444;"></div>
+      <span class="alloc-label">High risk</span>
+      <input type="range" class="alloc-input" min="0" max="600" step="50" id="sl-risk" oninput="updateAlloc()">
+      <span class="alloc-val" id="al-risk">$300</span>
+    </div>
+    <div class="income-seg-bar" id="alloc-bar"></div>
+    <div class="flex-between">
+      <span class="text-xs muted">Living + buffer</span>
+      <span class="text-xs fw7" id="al-living">$1,434</span>
+    </div>
+  </div>
+
+  <div class="flex-between px16" style="margin-bottom:10px; margin-top:4px;">
+    <div class="section-title" style="padding:0;">Transactions</div>
+    <button class="btn btn-primary btn-sm" onclick="openModal('modal-add-tx')">+ Add</button>
+  </div>
+  <div class="card" id="tx-list">
+    <div class="empty"><div class="empty-icon">💸</div><div class="empty-text">No transactions yet</div></div>
+  </div>
+</div>
+
+<!-- GOALS -->
+<div class="screen" id="screen-goals">
+  <div class="header">
+    <div class="header-title">Goals</div>
+    <div class="header-sub">Track what you're saving for</div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">Goals progress</div>
+    <div class="chart-wrap" style="height:160px;">
+      <canvas id="goalsChart" role="img" aria-label="Goals progress chart"></canvas>
+    </div>
+  </div>
+
+  <div class="flex-between px16" style="margin-bottom:10px; margin-top:4px;">
+    <div class="section-title" style="padding:0;">My goals</div>
+    <button class="btn btn-primary btn-sm" onclick="openModal('modal-add-goal')">+ Add</button>
+  </div>
+  <div id="goals-list" style="padding: 0 16px;"></div>
+</div>
+
+<!-- SETTINGS -->
+<div class="screen" id="screen-settings">
+  <div class="header">
+    <div class="header-title">Settings</div>
+    <div class="header-sub">Your profile & preferences</div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">Profile</div>
+    <div class="form-group">
+      <label class="form-label">Your name</label>
+      <input class="form-input" id="set-name" placeholder="e.g. Alex" oninput="saveSettings()">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Fortnightly income (AUD)</label>
+      <input class="form-input" id="set-income" type="number" placeholder="2584" oninput="saveSettings()">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Monthly expenses budget (AUD)</label>
+      <input class="form-input" id="set-budget" type="number" placeholder="2250" oninput="saveSettings()">
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">Accounts</div>
+    <div class="form-group">
+      <label class="form-label">Emergency fund balance (AUD)</label>
+      <input class="form-input" id="set-emergency" type="number" placeholder="10000" oninput="saveSettings()">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Emergency fund interest rate (%)</label>
+      <input class="form-input" id="set-emerg-rate" type="number" step="0.01" placeholder="5.75" oninput="saveSettings()">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Cash on hand / uninvested (AUD)</label>
+      <input class="form-input" id="set-cash" type="number" placeholder="3483" oninput="saveSettings()">
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">Data</div>
+    <div style="margin-bottom:10px;">
+      <div class="text-sm muted" style="margin-bottom:8px;">All data is stored locally on your device.</div>
+      <button class="btn btn-danger" onclick="confirmReset()">Reset all data</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">Install as app</div>
+    <div class="text-sm muted" style="margin-bottom:10px;">On iPhone: tap the Share button in Safari, then "Add to Home Screen" to install FinTrack as an app.</div>
+    <div style="background: var(--bg3); border-radius: var(--radius-sm); padding: 12px; font-size:12px; color: var(--muted);">Share <span style="color:var(--blue);">⬆</span> → Add to Home Screen → Add</div>
+  </div>
+
+  <div style="text-align:center; padding: 20px; font-size: 12px; color: var(--hint);">FinTrack v1.0 · Built for your financial journey</div>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <button class="nav-item active" onclick="showScreen('dashboard', this)">
+    <span class="nav-icon">⊞</span>Dashboard
+  </button>
+  <button class="nav-item" onclick="showScreen('portfolio', this)">
+    <span class="nav-icon">📈</span>Portfolio
+  </button>
+  <button class="nav-item" onclick="showScreen('budget', this)">
+    <span class="nav-icon">💳</span>Budget
+  </button>
+  <button class="nav-item" onclick="showScreen('goals', this)">
+    <span class="nav-icon">🎯</span>Goals
+  </button>
+  <button class="nav-item" onclick="showScreen('settings', this)">
+    <span class="nav-icon">⚙</span>Settings
+  </button>
+</nav>
+
+<!-- MODAL: Add Holding -->
+<div class="modal-overlay" id="modal-add-holding" onclick="closeModalOut(event, 'modal-add-holding')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Add holding</div>
+    <div class="form-group">
+      <label class="form-label">ETF / Asset name</label>
+      <input class="form-input" id="h-name" placeholder="e.g. VGS">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Units held</label>
+        <input class="form-input" id="h-units" type="number" step="0.001" placeholder="10">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Avg buy price ($)</label>
+        <input class="form-input" id="h-buy" type="number" step="0.01" placeholder="120.00">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Current price ($)</label>
+        <input class="form-input" id="h-price" type="number" step="0.01" placeholder="135.00">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Category</label>
+        <select class="form-input" id="h-cat">
+          <option value="etf-aus">ETF — Australia</option>
+          <option value="etf-global">ETF — Global</option>
+          <option value="etf-tech">ETF — Tech</option>
+          <option value="crypto">Crypto ETF</option>
+          <option value="stock">Individual stock</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="addHolding()">Add holding</button>
+  </div>
+</div>
+
+<!-- MODAL: Add Transaction -->
+<div class="modal-overlay" id="modal-add-tx" onclick="closeModalOut(event, 'modal-add-tx')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Add transaction</div>
+    <div class="form-group">
+      <label class="form-label">Description</label>
+      <input class="form-input" id="tx-desc" placeholder="e.g. Groceries">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Amount ($)</label>
+        <input class="form-input" id="tx-amount" type="number" step="0.01" placeholder="0.00">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Type</label>
+        <select class="form-input" id="tx-type">
+          <option value="expense">Expense</option>
+          <option value="income">Income</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Category</label>
+        <select class="form-input" id="tx-cat">
+          <option>🛒 Groceries</option>
+          <option>🏠 Rent</option>
+          <option>🚗 Transport</option>
+          <option>🍔 Dining</option>
+          <option>💡 Utilities</option>
+          <option>📱 Subscriptions</option>
+          <option>🏥 Health</option>
+          <option>✈️ Travel</option>
+          <option>💰 Investment</option>
+          <option>💼 Income</option>
+          <option>📦 Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Date</label>
+        <input class="form-input" id="tx-date" type="date">
+      </div>
+    </div>
+    <button class="btn btn-primary" onclick="addTransaction()">Add transaction</button>
+  </div>
+</div>
+
+<!-- MODAL: Add Goal -->
+<div class="modal-overlay" id="modal-add-goal" onclick="closeModalOut(event, 'modal-add-goal')">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Add goal</div>
+    <div class="form-group">
+      <label class="form-label">Goal name</label>
+      <input class="form-input" id="g-name" placeholder="e.g. House deposit">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Emoji icon</label>
+      <input class="form-input" id="g-icon" placeholder="🏠" maxlength="2">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Target amount ($)</label>
+        <input class="form-input" id="g-target" type="number" placeholder="50000">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Saved so far ($)</label>
+        <input class="form-input" id="g-current" type="number" placeholder="0">
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Target date</label>
+      <input class="form-input" id="g-date" type="date">
+    </div>
+    <button class="btn btn-primary" onclick="addGoal()">Add goal</button>
+  </div>
+</div>
+
+<script>
+// ─── STATE ───────────────────────────────────────────────
+let state = {
+  settings: { name: '', income: 2584, budget: 2250, emergency: 10000, emergRate: 5.75, cash: 3483 },
+  holdings: [],
+  transactions: [],
+  goals: [],
+  alloc: { emerg: 50, etf: 800, risk: 300 },
+  projRate: 0.08
+};
+
+let portChartInst = null, projChartInst = null, goalsChartInst = null;
+
+// ─── PERSIST ─────────────────────────────────────────────
+function save() { localStorage.setItem('fintrack', JSON.stringify(state)); }
+function load() {
+  const d = localStorage.getItem('fintrack');
+  if (d) { try { state = { ...state, ...JSON.parse(d) }; } catch(e) {} }
+}
+
+// ─── NAV ─────────────────────────────────────────────────
+function showScreen(name, btn) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+  if (btn) btn.classList.add('active');
+  if (name === 'dashboard') renderDashboard();
+  if (name === 'portfolio') renderPortfolio();
+  if (name === 'budget') renderBudget();
+  if (name === 'goals') renderGoals();
+  if (name === 'settings') renderSettings();
+}
+
+// ─── MODALS ──────────────────────────────────────────────
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function closeModalOut(e, id) { if (e.target === e.currentTarget) closeModal(id); }
+
+// ─── FORMAT ──────────────────────────────────────────────
+function fmt(n, dec=0) {
+  const v = Math.abs(n);
+  const s = v >= 1000 ? '$' + (v/1000).toFixed(dec === 0 ? 1 : dec) + 'k' : '$' + v.toFixed(dec);
+  return n < 0 ? '-' + s : s;
+}
+function fmtFull(n) { return '$' + Math.round(n).toLocaleString(); }
+function fmtPct(n) { return (n >= 0 ? '+' : '') + n.toFixed(1) + '%'; }
+
+// ─── GREETING ────────────────────────────────────────────
+function initGreeting() {
+  const h = new Date().getHours();
+  const g = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+  document.getElementById('greeting').textContent = g;
+  document.getElementById('today-date').textContent = new Date().toLocaleDateString('en-AU', { weekday:'long', day:'numeric', month:'long' });
+  document.getElementById('budget-month').textContent = new Date().toLocaleDateString('en-AU', { month:'long', year:'numeric' });
+}
+
+// ─── DASHBOARD ───────────────────────────────────────────
+function renderDashboard() {
+  const s = state.settings;
+  const totalInvested = state.holdings.reduce((a, h) => a + h.units * h.price, 0);
+  const totalCost = state.holdings.reduce((a, h) => a + h.units * h.buyPrice, 0);
+  const netWorth = s.emergency + s.cash + totalInvested;
+  const gain = totalInvested - totalCost;
+  const gainPct = totalCost > 0 ? (gain / totalCost * 100) : 0;
+
+  document.getElementById('nw-value').textContent = fmtFull(netWorth);
+  document.getElementById('nw-change').innerHTML = `<span>${gainPct >= 0 ? '↑' : '↓'} Investment ${fmtPct(gainPct)} (${gain >= 0 ? '+' : ''}${fmtFull(gain)})</span>`;
+  document.getElementById('nw-change').style.color = gain >= 0 ? 'var(--green)' : 'var(--red)';
+
+  document.getElementById('dash-emergency').textContent = fmtFull(s.emergency);
+  document.getElementById('dash-emerg-rate').textContent = `Westpac · ${s.emergRate}%`;
+  document.getElementById('dash-investments').textContent = fmtFull(totalInvested + s.cash);
+  document.getElementById('dash-income').textContent = fmtFull(s.income * 2);
+
+  const monthlyInvested = (state.alloc.emerg + state.alloc.etf + state.alloc.risk) * 2;
+  const pct = s.income > 0 ? (monthlyInvested / (s.income * 2) * 100) : 0;
+  document.getElementById('dash-saved').textContent = fmtFull(monthlyInvested);
+  document.getElementById('dash-saved-pct').textContent = `${Math.round(pct)}% of income`;
+
+  const name = s.name || 'You';
+  document.getElementById('avatar-initials').textContent = name.slice(0, 2).toUpperCase();
+
+  // portfolio rows
+  const cont = document.getElementById('portfolio-rows');
+  if (state.holdings.length === 0) {
+    cont.innerHTML = '<div class="empty"><div class="empty-icon">📊</div><div class="empty-text">Add investments in Portfolio tab</div></div>';
+  } else {
+    const catColors = { 'etf-aus':'#22c55e','etf-global':'#3b82f6','etf-tech':'#f59e0b','crypto':'#ef4444','stock':'#a855f7','other':'#64748b' };
+    const catEmoji = { 'etf-aus':'🇦🇺','etf-global':'🌍','etf-tech':'⚡','crypto':'₿','stock':'📊','other':'📦' };
+    cont.innerHTML = state.holdings.slice(0, 4).map(h => {
+      const val = h.units * h.price;
+      const cost = h.units * h.buyPrice;
+      const g = val - cost;
+      const gp = cost > 0 ? (g/cost*100) : 0;
+      const col = catColors[h.cat] || '#64748b';
+      return `<div class="row-item">
+        <div class="row-icon" style="background:${col}22;">${catEmoji[h.cat] || '📦'}</div>
+        <div class="row-label"><div class="row-name">${h.name}</div><div class="row-desc">${h.units} units</div></div>
+        <div class="row-right"><div class="row-amount">${fmtFull(val)}</div><div class="row-return ${g < 0 ? 'neg' : ''}">${fmtPct(gp)}</div></div>
+      </div>`;
+    }).join('');
+  }
+
+  // recent tx
+  const txCont = document.getElementById('recent-tx');
+  if (state.transactions.length === 0) {
+    txCont.innerHTML = '<div class="empty"><div class="empty-icon">💸</div><div class="empty-text">Add transactions in Budget tab</div></div>';
+  } else {
+    txCont.innerHTML = state.transactions.slice(-4).reverse().map(t => `
+      <div class="tx-item">
+        <div class="tx-icon" style="background:var(--bg3);">${t.cat.split(' ')[0]}</div>
+        <div class="tx-info"><div class="tx-name">${t.desc}</div><div class="tx-date">${t.date}</div></div>
+        <div class="tx-amount ${t.type === 'income' ? 'green' : 'red'}">${t.type === 'income' ? '+' : '-'}${fmtFull(t.amount)}</div>
+      </div>`).join('');
+  }
+}
+
+// ─── PORTFOLIO ───────────────────────────────────────────
+function renderPortfolio() {
+  const holdings = state.holdings;
+  const total = holdings.reduce((a, h) => a + h.units * h.price, 0);
+  const cost = holdings.reduce((a, h) => a + h.units * h.buyPrice, 0);
+  const gain = total - cost;
+  const gainPct = cost > 0 ? (gain / cost * 100) : 0;
+
+  document.getElementById('port-total').textContent = fmtFull(total);
+  document.getElementById('port-gain').textContent = `Gain: ${gain >= 0 ? '+' : ''}${fmtFull(gain)} (${fmtPct(gainPct)})`;
+  document.getElementById('port-gain').style.color = gain >= 0 ? 'var(--green)' : 'var(--red)';
+
+  // donut chart
+  if (portChartInst) portChartInst.destroy();
+  const catColors = { 'etf-aus':'#22c55e','etf-global':'#3b82f6','etf-tech':'#f59e0b','crypto':'#ef4444','stock':'#a855f7','other':'#64748b' };
+  const catLabels = { 'etf-aus':'AU ETF','etf-global':'Global ETF','etf-tech':'Tech ETF','crypto':'Crypto','stock':'Stocks','other':'Other' };
+
+  const catTotals = {};
+  holdings.forEach(h => { catTotals[h.cat] = (catTotals[h.cat] || 0) + h.units * h.price; });
+
+  if (Object.keys(catTotals).length > 0) {
+    portChartInst = new Chart(document.getElementById('portChart'), {
+      type: 'doughnut',
+      data: {
+        labels: Object.keys(catTotals).map(c => catLabels[c] || c),
+        datasets: [{ data: Object.values(catTotals), backgroundColor: Object.keys(catTotals).map(c => catColors[c] || '#64748b'), borderWidth: 0, hoverOffset: 4 }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { display: false } } }
+    });
+    document.getElementById('port-legend').innerHTML = Object.keys(catTotals).map(c =>
+      `<span class="legend-item"><span class="legend-dot" style="background:${catColors[c]||'#64748b'};"></span>${catLabels[c] || c} ${total > 0 ? Math.round(catTotals[c]/total*100) : 0}%</span>`
+    ).join('');
+  } else {
+    const ctx = document.getElementById('portChart').getContext('2d');
+    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+    document.getElementById('port-legend').innerHTML = '';
+  }
+
+  // holdings list
+  const list = document.getElementById('holdings-list');
+  if (holdings.length === 0) {
+    list.innerHTML = '<div class="empty"><div class="empty-icon">📈</div><div class="empty-text">Add your first holding</div></div>';
+  } else {
+    list.innerHTML = holdings.map((h, i) => {
+      const val = h.units * h.price;
+      const cost = h.units * h.buyPrice;
+      const g = val - cost;
+      const gp = cost > 0 ? (g/cost*100) : 0;
+      const col = catColors[h.cat] || '#64748b';
+      const pct = total > 0 ? (val/total*100) : 0;
+      return `<div class="row-item">
+        <div class="row-icon" style="background:${col}22; color:${col}; font-size:15px; font-weight:700;">${h.name.slice(0,3)}</div>
+        <div class="row-label">
+          <div class="row-name">${h.name} <span class="badge badge-blue" style="font-size:9px;">${Math.round(pct)}%</span></div>
+          <div class="row-desc">${h.units} × $${h.price.toFixed(2)}</div>
+          <div class="progress-track" style="margin-top:5px;"><div class="progress-fill" style="width:${pct}%; background:${col};"></div></div>
+        </div>
+        <div class="row-right">
+          <div class="row-amount">${fmtFull(val)}</div>
+          <div class="row-return ${g < 0 ? 'neg' : ''}">${g >= 0 ? '+' : ''}${fmtFull(g)} (${fmtPct(gp)})</div>
+          <button onclick="removeHolding(${i})" style="background:none;border:none;color:var(--hint);font-size:11px;cursor:pointer;margin-top:2px;">remove</button>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  renderProjection();
+}
+
+function addHolding() {
+  const name = document.getElementById('h-name').value.trim().toUpperCase();
+  const units = parseFloat(document.getElementById('h-units').value);
+  const buyPrice = parseFloat(document.getElementById('h-buy').value);
+  const price = parseFloat(document.getElementById('h-price').value);
+  const cat = document.getElementById('h-cat').value;
+  if (!name || isNaN(units) || isNaN(buyPrice) || isNaN(price)) return;
+  state.holdings.push({ name, units, buyPrice, price, cat, addedAt: new Date().toISOString() });
+  save(); closeModal('modal-add-holding'); renderPortfolio();
+  ['h-name','h-units','h-buy','h-price'].forEach(id => document.getElementById(id).value = '');
+}
+
+function removeHolding(i) {
+  if (confirm('Remove this holding?')) { state.holdings.splice(i, 1); save(); renderPortfolio(); }
+}
+
+let projRate = 0.08;
+function setProjRate(r, btn) {
+  projRate = r;
+  document.querySelectorAll('.tab-btn').forEach(t => t.classList.remove('active'));
+  btn.classList.add('active');
+  renderProjection();
+}
+
+function renderProjection() {
+  const lump = state.settings.cash + state.holdings.reduce((a, h) => a + h.units * h.price, 0);
+  const monthly = (state.alloc.etf || 800) * 2;
+  const years = [1, 2, 3, 5, 10, 15];
+  const vals = years.map(y => {
+    const m = y * 12, r = projRate / 12;
+    return Math.round(lump * Math.pow(1+r, m) + monthly * ((Math.pow(1+r, m)-1)/r));
+  });
+  const contribs = years.map(y => Math.round(lump + monthly * y * 12));
+
+  if (projChartInst) projChartInst.destroy();
+  projChartInst = new Chart(document.getElementById('projChart'), {
+    type: 'line',
+    data: {
+      labels: years.map(y => 'Yr ' + y),
+      datasets: [
+        { label: 'Value', data: vals, borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.08)', fill: true, tension: 0.4, pointRadius: 4, pointBackgroundColor: '#3b82f6' },
+        { label: 'Contributed', data: contribs, borderColor: '#64748b', borderDash: [4,4], backgroundColor: 'transparent', tension: 0.4, pointRadius: 3, pointBackgroundColor: '#64748b' }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => c.dataset.label + ': ' + fmtFull(c.parsed.y) } } },
+      scales: {
+        y: { ticks: { callback: v => '$' + (v >= 1000 ? (v/1000).toFixed(0)+'k' : v), font:{size:11}, color:'#94a3b8' }, grid: { color:'rgba(255,255,255,0.05)' } },
+        x: { ticks: { font:{size:11}, color:'#94a3b8' }, grid: { display:false } }
+      }
+    }
+  });
+
+  document.getElementById('proj-rows').innerHTML = `
+    <div style="display:grid; grid-template-columns: auto 1fr 1fr 1fr; gap:6px 12px; font-size:12px;">
+      <span style="color:var(--muted); font-weight:600;">Year</span>
+      <span style="color:var(--muted); font-weight:600;">Contributed</span>
+      <span style="color:var(--muted); font-weight:600;">Value</span>
+      <span style="color:var(--muted); font-weight:600;">Gain</span>
+      ${years.map((y,i) => `
+        <span style="color:var(--muted);">${y}</span>
+        <span>${fmtFull(contribs[i])}</span>
+        <span style="font-weight:700; color:var(--blue);">${fmtFull(vals[i])}</span>
+        <span style="color:var(--green);">+${fmtFull(vals[i]-contribs[i])}</span>
+      `).join('')}
+    </div>`;
+}
+
+// ─── BUDGET ──────────────────────────────────────────────
+function renderBudget() {
+  const now = new Date();
+  const txThisMonth = state.transactions.filter(t => {
+    const d = new Date(t.date);
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  });
+  const income = txThisMonth.filter(t => t.type === 'income').reduce((a, t) => a + t.amount, 0);
+  const spent = txThisMonth.filter(t => t.type === 'expense').reduce((a, t) => a + t.amount, 0);
+  const budget = state.settings.budget || 2250;
+  const pct = Math.min(100, budget > 0 ? (spent / budget * 100) : 0);
+  const remaining = budget - spent;
+
+  document.getElementById('budget-income-val').textContent = fmtFull(income);
+  document.getElementById('budget-spent-val').textContent = fmtFull(spent);
+  document.getElementById('budget-pct-val').textContent = Math.round(pct) + '%';
+  document.getElementById('budget-remaining').textContent = fmtFull(Math.max(0, remaining));
+  const bar = document.getElementById('budget-progress');
+  bar.style.width = pct + '%';
+  bar.style.background = pct > 90 ? 'var(--red)' : pct > 70 ? 'var(--amber)' : 'var(--green)';
+
+  // alloc sliders
+  const a = state.alloc;
+  document.getElementById('sl-emerg').value = a.emerg;
+  document.getElementById('sl-etf').value = a.etf;
+  document.getElementById('sl-risk').value = a.risk;
+  updateAlloc();
+
+  // tx list
+  const list = document.getElementById('tx-list');
+  if (state.transactions.length === 0) {
+    list.innerHTML = '<div class="empty"><div class="empty-icon">💸</div><div class="empty-text">No transactions yet</div></div>';
+  } else {
+    list.innerHTML = state.transactions.slice().reverse().map((t, i) => `
+      <div class="tx-item">
+        <div class="tx-icon" style="background:var(--bg3);">${t.cat.split(' ')[0]}</div>
+        <div class="tx-info"><div class="tx-name">${t.desc}</div><div class="tx-date">${t.cat.split(' ').slice(1).join(' ')} · ${t.date}</div></div>
+        <div style="text-align:right;">
+          <div class="tx-amount ${t.type === 'income' ? 'green' : 'red'}">${t.type === 'income' ? '+' : '-'}${fmtFull(t.amount)}</div>
+          <button onclick="removeTx(${state.transactions.length - 1 - i})" style="background:none;border:none;color:var(--hint);font-size:10px;cursor:pointer;">remove</button>
+        </div>
+      </div>`).join('');
+  }
+}
+
+function updateAlloc() {
+  const emerg = parseInt(document.getElementById('sl-emerg').value);
+  const etf = parseInt(document.getElementById('sl-etf').value);
+  const risk = parseInt(document.getElementById('sl-risk').value);
+  const income = state.settings.income || 2584;
+  const living = Math.max(0, income - emerg - etf - risk);
+
+  document.getElementById('al-emerg').textContent = '$' + emerg;
+  document.getElementById('al-etf').textContent = '$' + etf;
+  document.getElementById('al-risk').textContent = '$' + risk;
+  document.getElementById('al-living').textContent = fmtFull(living);
+
+  const bar = document.getElementById('alloc-bar');
+  const segs = [
+    { val: emerg, color: '#3b82f6' },
+    { val: etf, color: '#22c55e' },
+    { val: risk, color: '#ef4444' },
+    { val: living, color: '#334155' }
+  ];
+  bar.innerHTML = segs.map(s => `<div class="income-seg" style="flex:${s.val}; background:${s.color};"></div>`).join('');
+
+  state.alloc = { emerg, etf, risk };
+  save();
+}
+
+function addTransaction() {
+  const desc = document.getElementById('tx-desc').value.trim();
+  const amount = parseFloat(document.getElementById('tx-amount').value);
+  const type = document.getElementById('tx-type').value;
+  const cat = document.getElementById('tx-cat').value;
+  const date = document.getElementById('tx-date').value || new Date().toISOString().slice(0,10);
+  if (!desc || isNaN(amount)) return;
+  state.transactions.push({ desc, amount, type, cat, date });
+  save(); closeModal('modal-add-tx'); renderBudget();
+  document.getElementById('tx-desc').value = '';
+  document.getElementById('tx-amount').value = '';
+}
+
+function removeTx(i) {
+  state.transactions.splice(i, 1); save(); renderBudget();
+}
+
+// ─── GOALS ───────────────────────────────────────────────
+function renderGoals() {
+  const goals = state.goals;
+  const list = document.getElementById('goals-list');
+
+  if (goals.length === 0) {
+    list.innerHTML = '<div class="empty" style="padding:40px 0;"><div class="empty-icon">🎯</div><div class="empty-text">Add your first goal</div></div>';
+  } else {
+    list.innerHTML = goals.map((g, i) => {
+      const pct = Math.min(100, g.target > 0 ? (g.current / g.target * 100) : 0);
+      const rem = g.target - g.current;
+      const daysLeft = g.date ? Math.max(0, Math.ceil((new Date(g.date) - new Date()) / 86400000)) : null;
+      const colors = ['#3b82f6','#22c55e','#f59e0b','#a855f7','#ef4444'];
+      const col = colors[i % colors.length];
+      return `<div class="goal-item">
+        <div class="goal-header">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:20px;">${g.icon || '🎯'}</span>
+            <div>
+              <div class="goal-name">${g.name}</div>
+              ${daysLeft !== null ? `<div style="font-size:11px; color:var(--muted);">${daysLeft} days left</div>` : ''}
+            </div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:18px; font-weight:700; color:${col};">${Math.round(pct)}%</div>
+            <button onclick="removeGoal(${i})" style="background:none;border:none;color:var(--hint);font-size:10px;cursor:pointer;">remove</button>
+          </div>
+        </div>
+        <div class="progress-track"><div class="progress-fill" style="width:${pct}%; background:${col};"></div></div>
+        <div class="goal-amounts">
+          <span>${fmtFull(g.current)} saved</span>
+          <span>${fmtFull(rem)} to go</span>
+          <span>${fmtFull(g.target)} target</span>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // goals chart
+  if (goalsChartInst) goalsChartInst.destroy();
+  if (goals.length > 0) {
+    const colors = ['#3b82f6','#22c55e','#f59e0b','#a855f7','#ef4444'];
+    goalsChartInst = new Chart(document.getElementById('goalsChart'), {
+      type: 'bar',
+      data: {
+        labels: goals.map(g => g.name),
+        datasets: [
+          { label: 'Saved', data: goals.map(g => g.current), backgroundColor: goals.map((g,i) => colors[i%colors.length] + '99'), borderRadius: 6 },
+          { label: 'Remaining', data: goals.map(g => Math.max(0, g.target - g.current)), backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 6 }
+        ]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false, indexAxis: 'y',
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { stacked: true, ticks: { callback: v => '$' + (v>=1000?(v/1000).toFixed(0)+'k':v), font:{size:10}, color:'#94a3b8' }, grid:{color:'rgba(255,255,255,0.05)'} },
+          y: { stacked: true, ticks: { font:{size:11}, color:'#94a3b8' }, grid:{display:false} }
+        }
+      }
+    });
+  }
+}
+
+function addGoal() {
+  const name = document.getElementById('g-name').value.trim();
+  const icon = document.getElementById('g-icon').value.trim() || '🎯';
+  const target = parseFloat(document.getElementById('g-target').value);
+  const current = parseFloat(document.getElementById('g-current').value) || 0;
+  const date = document.getElementById('g-date').value;
+  if (!name || isNaN(target)) return;
+  state.goals.push({ name, icon, target, current, date });
+  save(); closeModal('modal-add-goal'); renderGoals();
+  ['g-name','g-icon','g-target','g-current','g-date'].forEach(id => document.getElementById(id).value = '');
+}
+
+function removeGoal(i) {
+  if (confirm('Remove this goal?')) { state.goals.splice(i, 1); save(); renderGoals(); }
+}
+
+// ─── SETTINGS ────────────────────────────────────────────
+function renderSettings() {
+  const s = state.settings;
+  document.getElementById('set-name').value = s.name || '';
+  document.getElementById('set-income').value = s.income || 2584;
+  document.getElementById('set-budget').value = s.budget || 2250;
+  document.getElementById('set-emergency').value = s.emergency || 10000;
+  document.getElementById('set-emerg-rate').value = s.emergRate || 5.75;
+  document.getElementById('set-cash').value = s.cash || 3483;
+}
+
+function saveSettings() {
+  state.settings = {
+    name: document.getElementById('set-name').value,
+    income: parseFloat(document.getElementById('set-income').value) || 2584,
+    budget: parseFloat(document.getElementById('set-budget').value) || 2250,
+    emergency: parseFloat(document.getElementById('set-emergency').value) || 10000,
+    emergRate: parseFloat(document.getElementById('set-emerg-rate').value) || 5.75,
+    cash: parseFloat(document.getElementById('set-cash').value) || 3483
+  };
+  save();
+}
+
+function confirmReset() {
+  if (confirm('Reset ALL data? This cannot be undone.')) {
+    localStorage.removeItem('fintrack');
+    location.reload();
+  }
+}
+
+// ─── INIT ─────────────────────────────────────────────────
+function init() {
+  load();
+  initGreeting();
+  document.getElementById('tx-date').value = new Date().toISOString().slice(0, 10);
+  renderDashboard();
+
+  // set slider values from saved state
+  if (state.alloc) {
+    document.getElementById('sl-emerg').value = state.alloc.emerg || 50;
+    document.getElementById('sl-etf').value = state.alloc.etf || 800;
+    document.getElementById('sl-risk').value = state.alloc.risk || 300;
+  }
+}
+
+init();
+</script>
+</body>
+</html>
